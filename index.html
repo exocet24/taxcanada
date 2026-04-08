@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Calculateur de taxes canadien. TPS, TVQ, TVH pour toutes les provinces. Simple, rapide, offline.">
+    <meta name="keywords" content="taxes, TPS, TVQ, TVH, PST, GST, Canada, Québec, calculateur, calculator">
+    <title>TaxCanada</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #101018;
+            --bg-card: #16161f;
+            --bg-input: #1c1c28;
+            --cyan: #00e5ff;
+            --cyan-dim: #00e5ff30;
+            --cyan-glow: #00e5ff50;
+            --magenta: #ff00aa;
+            --magenta-dim: #ff00aa30;
+            --green: #00ff88;
+            --green-dim: #00ff8830;
+            --text: #e8e8f0;
+            --text-dim: #707088;
+            --text-muted: #505068;
+            --border: #252535;
+            --border-light: #303045;
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text);
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            padding: calc(20px + var(--safe-top)) 16px calc(20px + var(--safe-bottom));
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 440px;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            background: linear-gradient(135deg, var(--cyan), var(--magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            letter-spacing: 1.5px;
+            margin-top: 4px;
+        }
+
+        /* Language Switcher */
+        .lang-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        .lang-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .lang-btn.active {
+            border-color: var(--cyan);
+            color: var(--cyan);
+            background: var(--cyan-dim);
+        }
+
+        /* Province Selector */
+        .province-selector {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .province-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .province-select-wrapper {
+            position: relative;
+        }
+
+        .province-select {
+            width: 100%;
+            padding: 14px 40px 14px 16px;
+            font-size: 1rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            appearance: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .province-select:focus {
+            outline: none;
+            border-color: var(--cyan);
+            box-shadow: 0 0 0 3px var(--cyan-dim);
+        }
+
+        .province-select-arrow {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: var(--text-dim);
+        }
+
+        /* Main Card */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        /* Mode Toggle */
+        .mode-toggle {
+            display: flex;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.25s ease;
+        }
+
+        .mode-btn.active {
+            background: var(--bg-card);
+            color: var(--cyan);
+            box-shadow: 0 2px 12px var(--cyan-dim);
+        }
+
+        /* Input */
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            display: block;
+            color: var(--text-dim);
+            font-size: 0.7rem;
+            letter-spacing: 1.5px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .currency-symbol {
+            position: absolute;
+            left: 16px;
+            color: var(--text-muted);
+            font-size: 1.3rem;
+            font-weight: 300;
+        }
+
+        .amount-input {
+            width: 100%;
+            padding: 18px 50px 18px 38px;
+            font-size: 1.6rem;
+            font-weight: 500;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            outline: none;
+            transition: all 0.2s ease;
+            -moz-appearance: textfield;
+        }
+
+        .amount-input::-webkit-outer-spin-button,
+        .amount-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .amount-input:focus {
+            border-color: var(--cyan);
+            box-shadow: 0 0 0 3px var(--cyan-dim);
+        }
+
+        .clear-btn {
+            position: absolute;
+            right: 12px;
+            background: var(--bg-secondary);
+            border: none;
+            color: var(--text-dim);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .clear-btn.visible {
+            opacity: 1;
+        }
+
+        .clear-btn:hover {
+            background: var(--border);
+        }
+
+        /* Results */
+        .results {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 16px;
+            border-left: 3px solid var(--cyan);
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .result-row:last-child {
+            border-bottom: none;
+            padding-top: 16px;
+            margin-top: 4px;
+        }
+
+        .result-label {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .result-value {
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 1.05rem;
+            color: var(--text);
+        }
+
+        .result-row.total .result-label {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .result-row.total .result-value {
+            color: var(--cyan);
+            font-size: 1.35rem;
+            font-weight: 600;
+            text-shadow: 0 0 20px var(--cyan-dim);
+        }
+
+        /* Copy Button */
+        .copy-btn {
+            width: 100%;
+            padding: 14px;
+            margin-top: 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .copy-btn:hover {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .copy-btn.copied {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        /* Tax Info Bar */
+        .tax-info {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .tax-badge {
+            background: var(--bg-card);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+            letter-spacing: 0.5px;
+        }
+
+        .tax-badge span {
+            color: var(--magenta);
+            font-weight: 600;
+        }
+
+        /* History */
+        .history-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .history-title {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .history-clear {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .history-clear:hover {
+            color: var(--magenta);
+            background: var(--magenta-dim);
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .history-item:hover {
+            background: var(--bg-input);
+        }
+
+        .history-item-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .history-item-amount {
+            font-family: 'SF Mono', monospace;
+            font-size: 0.95rem;
+            color: var(--text);
+        }
+
+        .history-item-meta {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .history-item-result {
+            font-family: 'SF Mono', monospace;
+            font-size: 0.95rem;
+            color: var(--cyan);
+        }
+
+        .history-empty {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            padding: 20px;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding-top: 16px;
+            margin-top: auto;
+        }
+
+        .footer-brand {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+
+        .footer-links {
+            margin-top: 8px;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .footer-links a {
+            color: var(--text-dim);
+            font-size: 0.7rem;
+            text-decoration: none;
+        }
+
+        .footer-links a:hover {
+            color: var(--cyan);
+        }
+
+        /* Light Mode */
+        body.light {
+            --bg-primary: #f2f2f7;
+            --bg-secondary: #e8e8f0;
+            --bg-card: #ffffff;
+            --bg-input: #ededf5;
+            --cyan: #0088aa;
+            --cyan-dim: #0088aa20;
+            --cyan-glow: #0088aa40;
+            --magenta: #cc0077;
+            --magenta-dim: #cc007720;
+            --green: #008844;
+            --green-dim: #00884420;
+            --text: #1a1a2e;
+            --text-dim: #55556a;
+            --text-muted: #8888a0;
+            --border: #d0d0e0;
+            --border-light: #c0c0d5;
+        }
+
+        /* Theme Toggle */
+        .theme-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .theme-btn:hover {
+            border-color: var(--cyan);
+            color: var(--cyan);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+        /* Responsive */
+        @media (max-width: 360px) {
+            .logo { font-size: 1.7rem; }
+            .amount-input { font-size: 1.4rem; padding: 16px 45px 16px 34px; }
+            .card { padding: 16px; }
+        }
+
+        @media (min-width: 500px) {
+            body { padding: 30px 20px; }
+            .card { padding: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+                <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+            <div class="logo">TAXCANADA</div>
+            <div class="tagline" id="tagline"></div>
+            <div class="lang-switcher">
+                <button class="lang-btn" data-lang="fr" onclick="setLanguage('fr')">FR</button>
+                <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">EN</button>
+                <button class="lang-btn" data-lang="es" onclick="setLanguage('es')">ES</button>
+            </div>
+        </header>
+
+        <!-- Province Selector -->
+        <div class="province-selector">
+            <div class="province-label" id="provinceLabel"></div>
+            <div class="province-select-wrapper">
+                <select class="province-select" id="province" onchange="onProvinceChange()"></select>
+                <div class="province-select-arrow">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Calculator -->
+        <div class="card">
+            <div class="mode-toggle">
+                <button class="mode-btn active" data-mode="standard" onclick="setMode('standard')" id="modeStandardBtn"></button>
+                <button class="mode-btn" data-mode="inverse" onclick="setMode('inverse')" id="modeInverseBtn"></button>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label" id="input-label"></label>
+                <div class="input-wrapper">
+                    <span class="currency-symbol">$</span>
+                    <input type="number"
+                           class="amount-input"
+                           id="amount"
+                           inputmode="decimal"
+                           step="0.01"
+                           min="0"
+                           placeholder="0.00"
+                           oninput="calculate()">
+                    <button class="clear-btn" id="clearBtn" onclick="clearInput()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="results">
+                <div class="result-row" id="tax1Row">
+                    <span class="result-label" id="tax1Label"></span>
+                    <span class="result-value" id="tax1Value">$0.00</span>
+                </div>
+                <div class="result-row" id="tax2Row" style="display: none;">
+                    <span class="result-label" id="tax2Label"></span>
+                    <span class="result-value" id="tax2Value">$0.00</span>
+                </div>
+                <div class="result-row total">
+                    <span class="result-label" id="totalLabel"></span>
+                    <span class="result-value" id="totalValue">$0.00</span>
+                </div>
+            </div>
+
+            <button class="copy-btn" id="copyBtn" onclick="copyResult()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span id="copyBtnText"></span>
+            </button>
+        </div>
+
+        <!-- Tax Info -->
+        <div class="tax-info" id="taxInfo"></div>
+
+        <!-- History -->
+        <div class="history-section">
+            <div class="history-header">
+                <span class="history-title" id="historyTitle"></span>
+                <button class="history-clear" id="historyClearBtn" onclick="clearHistory()"></button>
+            </div>
+            <div class="history-list" id="historyList"></div>
+        </div>
+
+        <footer>
+            <div class="footer-brand">3DNG</div>
+            <div class="footer-links">
+                <a href="privacy.html" id="privacyLink"></a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // ── Translations ──────────────────────────────────────────────────────
+        const TRANSLATIONS = {
+            fr: {
+                tagline: 'Calculateur de taxes',
+                province: 'Province',
+                modeStandard: 'Sans taxes → Total',
+                modeInverse: 'Total → Sans taxes',
+                inputLabelStandard: 'Montant avant taxes',
+                inputLabelInverse: 'Montant total (TTC)',
+                totalLabelStandard: 'Total TTC',
+                totalLabelInverse: 'Montant HT',
+                copyBtn: 'Copier le résultat',
+                copied: 'Copié !',
+                historyTitle: 'Historique',
+                historyClear: 'Effacer',
+                historyEmpty: 'Aucun calcul',
+                privacy: 'Confidentialité',
+                subtotal: 'Sous-total',
+                total: 'Total',
+                modeShortStandard: 'HT→TTC',
+                modeShortInverse: 'TTC→HT',
+                taxes: { TPS: 'TPS', TVQ: 'TVQ', TVH: 'TVH', TVP: 'TVP' },
+                provinces: {
+                    QC: 'Québec (TPS + TVQ)',
+                    ON: 'Ontario (TVH)',
+                    BC: 'Colombie-Britannique (TPS + TVP)',
+                    AB: 'Alberta (TPS)',
+                    SK: 'Saskatchewan (TPS + TVP)',
+                    MB: 'Manitoba (TPS + TVP)',
+                    NB: 'Nouveau-Brunswick (TVH)',
+                    NS: 'Nouvelle-Écosse (TVH)',
+                    PE: 'Île-du-Prince-Édouard (TVH)',
+                    NL: 'Terre-Neuve-et-Labrador (TVH)',
+                    YT: 'Yukon (TPS)',
+                    NT: 'Territoires du Nord-Ouest (TPS)',
+                    NU: 'Nunavut (TPS)'
+                },
+                provinceNames: {
+                    QC: 'Québec', ON: 'Ontario', BC: 'Colombie-Britannique',
+                    AB: 'Alberta', SK: 'Saskatchewan', MB: 'Manitoba',
+                    NB: 'Nouveau-Brunswick', NS: 'Nouvelle-Écosse',
+                    PE: 'Î.-P.-É.', NL: 'Terre-Neuve-et-Labrador',
+                    YT: 'Yukon', NT: 'T. du Nord-Ouest', NU: 'Nunavut'
+                }
+            },
+            en: {
+                tagline: 'Tax Calculator',
+                province: 'Province',
+                modeStandard: 'Pre-tax → Total',
+                modeInverse: 'Total → Pre-tax',
+                inputLabelStandard: 'Amount before taxes',
+                inputLabelInverse: 'Total amount (incl. tax)',
+                totalLabelStandard: 'Total incl. tax',
+                totalLabelInverse: 'Pre-tax amount',
+                copyBtn: 'Copy result',
+                copied: 'Copied!',
+                historyTitle: 'History',
+                historyClear: 'Clear',
+                historyEmpty: 'No calculations',
+                privacy: 'Privacy',
+                subtotal: 'Subtotal',
+                total: 'Total',
+                modeShortStandard: 'Pre→Total',
+                modeShortInverse: 'Total→Pre',
+                taxes: { TPS: 'GST', TVQ: 'QST', TVH: 'HST', TVP: 'PST' },
+                provinces: {
+                    QC: 'Quebec (GST + QST)',
+                    ON: 'Ontario (HST)',
+                    BC: 'British Columbia (GST + PST)',
+                    AB: 'Alberta (GST)',
+                    SK: 'Saskatchewan (GST + PST)',
+                    MB: 'Manitoba (GST + PST)',
+                    NB: 'New Brunswick (HST)',
+                    NS: 'Nova Scotia (HST)',
+                    PE: 'Prince Edward Island (HST)',
+                    NL: 'Newfoundland & Labrador (HST)',
+                    YT: 'Yukon (GST)',
+                    NT: 'Northwest Territories (GST)',
+                    NU: 'Nunavut (GST)'
+                },
+                provinceNames: {
+                    QC: 'Quebec', ON: 'Ontario', BC: 'British Columbia',
+                    AB: 'Alberta', SK: 'Saskatchewan', MB: 'Manitoba',
+                    NB: 'New Brunswick', NS: 'Nova Scotia',
+                    PE: 'P.E.I.', NL: 'Newfoundland & Labrador',
+                    YT: 'Yukon', NT: 'N.W. Territories', NU: 'Nunavut'
+                }
+            },
+            es: {
+                tagline: 'Calculadora de impuestos',
+                province: 'Provincia',
+                modeStandard: 'Sin imp. → Total',
+                modeInverse: 'Total → Sin imp.',
+                inputLabelStandard: 'Monto antes de impuestos',
+                inputLabelInverse: 'Monto total (con imp.)',
+                totalLabelStandard: 'Total con impuestos',
+                totalLabelInverse: 'Monto sin impuestos',
+                copyBtn: 'Copiar resultado',
+                copied: '¡Copiado!',
+                historyTitle: 'Historial',
+                historyClear: 'Borrar',
+                historyEmpty: 'Sin cálculos',
+                privacy: 'Privacidad',
+                subtotal: 'Subtotal',
+                total: 'Total',
+                modeShortStandard: 'Sin→Total',
+                modeShortInverse: 'Total→Sin',
+                taxes: { TPS: 'GST', TVQ: 'QST', TVH: 'HST', TVP: 'PST' },
+                provinces: {
+                    QC: 'Quebec (GST + QST)',
+                    ON: 'Ontario (HST)',
+                    BC: 'Columbia Británica (GST + PST)',
+                    AB: 'Alberta (GST)',
+                    SK: 'Saskatchewan (GST + PST)',
+                    MB: 'Manitoba (GST + PST)',
+                    NB: 'Nuevo Brunswick (HST)',
+                    NS: 'Nueva Escocia (HST)',
+                    PE: 'Isla del Príncipe Eduardo (HST)',
+                    NL: 'Terranova y Labrador (HST)',
+                    YT: 'Yukón (GST)',
+                    NT: 'Territorios del Noroeste (GST)',
+                    NU: 'Nunavut (GST)'
+                },
+                provinceNames: {
+                    QC: 'Quebec', ON: 'Ontario', BC: 'Columbia Británica',
+                    AB: 'Alberta', SK: 'Saskatchewan', MB: 'Manitoba',
+                    NB: 'Nuevo Brunswick', NS: 'Nueva Escocia',
+                    PE: 'Isla P. Eduardo', NL: 'Terranova y Labrador',
+                    YT: 'Yukón', NT: 'Territorios del Noroeste', NU: 'Nunavut'
+                }
+            }
+        };
+
+        // ── Tax Config ────────────────────────────────────────────────────────
+        const TAX_CONFIG = {
+            QC: { type: 'dual', tax1: { key: 'TPS', rate: 0.05 }, tax2: { key: 'TVQ', rate: 0.09975 } },
+            ON: { type: 'hst',  tax1: { key: 'TVH', rate: 0.13 } },
+            BC: { type: 'dual', tax1: { key: 'TPS', rate: 0.05 }, tax2: { key: 'TVP', rate: 0.07 } },
+            AB: { type: 'gst',  tax1: { key: 'TPS', rate: 0.05 } },
+            SK: { type: 'dual', tax1: { key: 'TPS', rate: 0.05 }, tax2: { key: 'TVP', rate: 0.06 } },
+            MB: { type: 'dual', tax1: { key: 'TPS', rate: 0.05 }, tax2: { key: 'TVP', rate: 0.07 } },
+            NB: { type: 'hst',  tax1: { key: 'TVH', rate: 0.15 } },
+            NS: { type: 'hst',  tax1: { key: 'TVH', rate: 0.15 } },
+            PE: { type: 'hst',  tax1: { key: 'TVH', rate: 0.15 } },
+            NL: { type: 'hst',  tax1: { key: 'TVH', rate: 0.15 } },
+            YT: { type: 'gst',  tax1: { key: 'TPS', rate: 0.05 } },
+            NT: { type: 'gst',  tax1: { key: 'TPS', rate: 0.05 } },
+            NU: { type: 'gst',  tax1: { key: 'TPS', rate: 0.05 } }
+        };
+
+        // ── State ─────────────────────────────────────────────────────────────
+        let currentMode = 'standard';
+        let currentProvince = 'QC';
+        let currentLang = 'fr';
+        let history = [];
+        let historyDebounce = null;
+
+        // ── Helpers ───────────────────────────────────────────────────────────
+        function t(key) {
+            return TRANSLATIONS[currentLang][key] || key;
+        }
+
+        function taxName(key) {
+            return TRANSLATIONS[currentLang].taxes[key] || key;
+        }
+
+        function round2(value) {
+            return Math.round(value * 100) / 100;
+        }
+
+        function formatCurrency(value) {
+            return '$' + value.toFixed(2);
+        }
+
+        function fmtRate(rate) {
+            const pct = rate * 100;
+            return pct.toFixed(pct % 1 === 0 ? 0 : 3) + '%';
+        }
+
+        // ── Language ──────────────────────────────────────────────────────────
+        function detectLanguage() {
+            const saved = localStorage.getItem('taxcanada_lang');
+            if (saved && TRANSLATIONS[saved]) return saved;
+            const nav = (navigator.language || '').slice(0, 2).toLowerCase();
+            if (nav === 'es') return 'es';
+            if (nav === 'en') return 'en';
+            return 'fr';
+        }
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('taxcanada_lang', lang);
+            document.documentElement.lang = lang;
+
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lang === lang);
+            });
+
+            applyTranslations();
+            updateUI();
+            calculate();
+        }
+
+        function applyTranslations() {
+            document.getElementById('tagline').textContent = t('tagline');
+            document.getElementById('provinceLabel').textContent = t('province');
+            document.getElementById('modeStandardBtn').textContent = t('modeStandard');
+            document.getElementById('modeInverseBtn').textContent = t('modeInverse');
+            document.getElementById('historyTitle').textContent = t('historyTitle');
+            document.getElementById('historyClearBtn').textContent = t('historyClear');
+            document.getElementById('privacyLink').textContent = t('privacy');
+            document.getElementById('copyBtnText').textContent = t('copyBtn');
+
+            // Update input/total labels based on current mode
+            const isStandard = currentMode === 'standard';
+            document.getElementById('input-label').textContent = isStandard
+                ? t('inputLabelStandard') : t('inputLabelInverse');
+            document.getElementById('totalLabel').textContent = isStandard
+                ? t('totalLabelStandard') : t('totalLabelInverse');
+
+            // Rebuild province dropdown preserving selection
+            const select = document.getElementById('province');
+            const current = select.value || currentProvince;
+            const provinces = TRANSLATIONS[currentLang].provinces;
+            select.innerHTML = Object.entries(provinces)
+                .map(([code, name]) => `<option value="${code}"${code === current ? ' selected' : ''}>${name}</option>`)
+                .join('');
+
+            // Re-render history with new language
+            renderHistory();
+        }
+
+        // ── Mode ──────────────────────────────────────────────────────────────
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            document.getElementById('input-label').textContent = mode === 'standard'
+                ? t('inputLabelStandard') : t('inputLabelInverse');
+            document.getElementById('totalLabel').textContent = mode === 'standard'
+                ? t('totalLabelStandard') : t('totalLabelInverse');
+            calculate();
+        }
+
+        // ── Province ──────────────────────────────────────────────────────────
+        function onProvinceChange() {
+            currentProvince = document.getElementById('province').value;
+            localStorage.setItem('taxcanada_province', currentProvince);
+            updateUI();
+            calculate();
+        }
+
+        function updateUI() {
+            const config = TAX_CONFIG[currentProvince];
+            const tax1Name = taxName(config.tax1.key);
+            const tax2Row = document.getElementById('tax2Row');
+            const taxInfo = document.getElementById('taxInfo');
+
+            document.getElementById('tax1Label').textContent = `${tax1Name} (${fmtRate(config.tax1.rate)})`;
+
+            if (config.type === 'dual') {
+                const tax2Name = taxName(config.tax2.key);
+                tax2Row.style.display = 'flex';
+                document.getElementById('tax2Label').textContent = `${tax2Name} (${fmtRate(config.tax2.rate)})`;
+                const totalRate = config.tax1.rate + config.tax2.rate;
+                taxInfo.innerHTML = `
+                    <span class="tax-badge">${tax1Name} <span>${fmtRate(config.tax1.rate)}</span></span>
+                    <span class="tax-badge">${tax2Name} <span>${fmtRate(config.tax2.rate)}</span></span>
+                    <span class="tax-badge">${t('total')} <span>${fmtRate(totalRate)}</span></span>
+                `;
+            } else {
+                tax2Row.style.display = 'none';
+                taxInfo.innerHTML = `
+                    <span class="tax-badge">${tax1Name} <span>${fmtRate(config.tax1.rate)}</span></span>
+                `;
+            }
+        }
+
+        // ── Calculate ─────────────────────────────────────────────────────────
+        function calculate() {
+            const raw = document.getElementById('amount').value;
+            const input = raw === '' || raw === '0' ? 0 : parseFloat(raw) || 0;
+            const config = TAX_CONFIG[currentProvince];
+
+            document.getElementById('clearBtn').classList.toggle('visible', input > 0);
+
+            let subtotal, tax1, tax2 = 0, total;
+            const totalRate = config.tax1.rate + (config.tax2?.rate || 0);
+
+            if (currentMode === 'standard') {
+                subtotal = input;
+                tax1 = round2(subtotal * config.tax1.rate);
+                if (config.type === 'dual') tax2 = round2(subtotal * config.tax2.rate);
+                total = round2(subtotal + tax1 + tax2);
+            } else {
+                total = input;
+                subtotal = round2(total / (1 + totalRate));
+                tax1 = round2(subtotal * config.tax1.rate);
+                if (config.type === 'dual') tax2 = round2(subtotal * config.tax2.rate);
+            }
+
+            document.getElementById('tax1Value').textContent = formatCurrency(tax1);
+            document.getElementById('tax2Value').textContent = formatCurrency(tax2);
+            document.getElementById('totalValue').textContent = formatCurrency(
+                currentMode === 'standard' ? total : subtotal
+            );
+
+            if (input > 0) {
+                clearTimeout(historyDebounce);
+                historyDebounce = setTimeout(() => {
+                    saveToHistory(input, currentMode === 'standard' ? total : subtotal);
+                }, 800);
+            }
+        }
+
+        // ── Copy ──────────────────────────────────────────────────────────────
+        function clearInput() {
+            document.getElementById('amount').value = '';
+            document.getElementById('clearBtn').classList.remove('visible');
+            calculate();
+        }
+
+        function copyResult() {
+            const input = parseFloat(document.getElementById('amount').value) || 0;
+            if (input === 0) return;
+
+            const config = TAX_CONFIG[currentProvince];
+            const totalRate = config.tax1.rate + (config.tax2?.rate || 0);
+            const provinceName = TRANSLATIONS[currentLang].provinceNames[currentProvince];
+
+            let subtotal, tax1, tax2 = 0, total;
+            if (currentMode === 'standard') {
+                subtotal = input;
+                tax1 = round2(subtotal * config.tax1.rate);
+                if (config.type === 'dual') tax2 = round2(subtotal * config.tax2.rate);
+                total = round2(subtotal + tax1 + tax2);
+            } else {
+                total = input;
+                subtotal = round2(total / (1 + totalRate));
+                tax1 = round2(subtotal * config.tax1.rate);
+                if (config.type === 'dual') tax2 = round2(subtotal * config.tax2.rate);
+            }
+
+            let text = `${provinceName}\n`;
+            text += `${t('subtotal')}: ${formatCurrency(subtotal)}\n`;
+            text += `${taxName(config.tax1.key)}: ${formatCurrency(tax1)}\n`;
+            if (config.type === 'dual') {
+                text += `${taxName(config.tax2.key)}: ${formatCurrency(tax2)}\n`;
+            }
+            text += `${t('total')}: ${formatCurrency(total)}`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copyBtn');
+                const btnText = document.getElementById('copyBtnText');
+                btn.classList.add('copied');
+                btnText.textContent = t('copied');
+
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btnText.textContent = t('copyBtn');
+                }, 2000);
+            });
+        }
+
+        // ── History ───────────────────────────────────────────────────────────
+        function saveToHistory(input, result) {
+            const last = history[0];
+            if (last && last.input === input && last.province === currentProvince && last.mode === currentMode) return;
+
+            history.unshift({ input, result, mode: currentMode, province: currentProvince, timestamp: Date.now() });
+            if (history.length > 20) history.pop();
+            localStorage.setItem('taxcanada_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function loadHistory() {
+            const saved = localStorage.getItem('taxcanada_history');
+            if (saved) history = JSON.parse(saved);
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            if (history.length === 0) {
+                list.innerHTML = `<div class="history-empty">${t('historyEmpty')}</div>`;
+                return;
+            }
+            list.innerHTML = history.slice(0, 10).map(entry => {
+                const provinceName = TRANSLATIONS[currentLang].provinceNames[entry.province] || entry.province;
+                const modeLabel = entry.mode === 'standard' ? t('modeShortStandard') : t('modeShortInverse');
+                return `
+                    <div class="history-item" onclick="loadHistoryItem(${entry.input}, '${entry.mode}', '${entry.province}')">
+                        <div class="history-item-left">
+                            <span class="history-item-amount">${formatCurrency(entry.input)}</span>
+                            <span class="history-item-meta">${provinceName} · ${modeLabel}</span>
+                        </div>
+                        <span class="history-item-result">${formatCurrency(entry.result)}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadHistoryItem(amount, mode, province) {
+            document.getElementById('province').value = province;
+            currentProvince = province;
+            updateUI();
+            setMode(mode);
+            document.getElementById('amount').value = amount;
+            calculate();
+        }
+
+        function clearHistory() {
+            history = [];
+            localStorage.removeItem('taxcanada_history');
+            renderHistory();
+        }
+
+        // ── Theme ─────────────────────────────────────────────────────────────
+        const moonIcon = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+        const sunIcon  = `<circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>`;
+
+        function applyTheme(theme) {
+            document.body.classList.toggle('light', theme === 'light');
+            document.getElementById('themeIcon').innerHTML = theme === 'light' ? sunIcon : moonIcon;
+        }
+
+        function toggleTheme() {
+            const newTheme = document.body.classList.contains('light') ? 'dark' : 'light';
+            localStorage.setItem('taxcanada_theme', newTheme);
+            applyTheme(newTheme);
+        }
+
+        // ── Init ──────────────────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('taxcanada_theme') || 'dark';
+            applyTheme(savedTheme);
+
+            loadHistory();
+
+            const savedProvince = localStorage.getItem('taxcanada_province');
+            if (savedProvince && TAX_CONFIG[savedProvince]) currentProvince = savedProvince;
+
+            currentLang = detectLanguage();
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lang === currentLang);
+            });
+            document.documentElement.lang = currentLang;
+
+            applyTranslations();
+            updateUI();
+        });
+
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
