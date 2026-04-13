@@ -10,7 +10,8 @@
     <meta name="keywords" content="taxes, TPS, TVQ, TVH, PST, GST, Canada, Québec, calculateur, calculator">
     <title>TaxCanada</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         * {
@@ -25,13 +26,13 @@
             --bg-secondary: #101018;
             --bg-card: #16161f;
             --bg-input: #1c1c28;
-            --cyan: #00e5ff;
-            --cyan-dim: #00e5ff30;
-            --cyan-glow: #00e5ff50;
-            --magenta: #ff00aa;
-            --magenta-dim: #ff00aa30;
-            --green: #00ff88;
-            --green-dim: #00ff8830;
+            --cyan: #2d8de8;
+            --cyan-dim: #2d8de830;
+            --cyan-glow: #2d8de850;
+            --magenta: #2db872;
+            --magenta-dim: #2db87230;
+            --green: #2db872;
+            --green-dim: #2db87230;
             --text: #e8e8f0;
             --text-dim: #707088;
             --text-muted: #505068;
@@ -501,13 +502,13 @@
             --bg-secondary: #e8e8f0;
             --bg-card: #ffffff;
             --bg-input: #ededf5;
-            --cyan: #0088aa;
-            --cyan-dim: #0088aa20;
-            --cyan-glow: #0088aa40;
-            --magenta: #cc0077;
-            --magenta-dim: #cc007720;
-            --green: #008844;
-            --green-dim: #00884420;
+            --cyan: #1a6cc4;
+            --cyan-dim: #1a6cc420;
+            --cyan-glow: #1a6cc440;
+            --magenta: #1e9957;
+            --magenta-dim: #1e995720;
+            --green: #1e9957;
+            --green-dim: #1e995720;
             --text: #1a1a2e;
             --text-dim: #55556a;
             --text-muted: #8888a0;
@@ -1101,7 +1102,7 @@
 
         // ── Init ──────────────────────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('taxcanada_theme') || 'dark';
+            const savedTheme = localStorage.getItem('taxcanada_theme') || 'light';
             applyTheme(savedTheme);
 
             loadHistory();
